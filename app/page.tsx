@@ -38,6 +38,9 @@ interface Results {
   verschil: number;
 }
 
+// Moet gelijk blijven aan SPAARRENTE in app/api/bereken/route.ts
+const SPAARRENTE = 1.5;
+
 const DEFAULT_FASES: Fase[] = [
   { van: 11, tot: 16, bedrag: 10 },
   { van: 16, tot: 18, bedrag: 25 },
@@ -48,6 +51,13 @@ const DEFAULT_FASES: Fase[] = [
 function eur(n: number): string {
   if (Math.abs(n) >= 1_000_000) return '€ ' + (n / 1_000_000).toFixed(2).replace('.', ',') + ' mln';
   return '€ ' + Math.round(n).toLocaleString('nl-NL');
+}
+
+// Afgerond, tegen valse precisie. Een schatting hoort er niet als bankafschrift uit te zien.
+function eurRond(n: number): string {
+  if (Math.abs(n) >= 1_000_000) return '€ ' + (n / 1_000_000).toFixed(1).replace('.', ',') + ' mln';
+  const afgerond = Math.round(n / 100) * 100;
+  return '€ ' + afgerond.toLocaleString('nl-NL');
 }
 
 function useCountUp(target: number, duration = 1400, trigger = true) {
@@ -74,6 +84,7 @@ const STAPPEN = ['welkom', 'naam', 'doel', 'fases', 'rendement', 'onthulling', '
 export default function VrijheidsplanWizard() {
   const [stap, setStap] = useState(0);
   const [naam, setNaam] = useState('');
+  const [geslacht, setGeslacht] = useState<'jongen' | 'meisje'>('jongen');
   const [doel, setDoel] = useState(50);
   const [rend, setRend] = useState(10);
   const [fases, setFases] = useState<Fase[]>(DEFAULT_FASES.map(f => ({ ...f })));
@@ -141,7 +152,29 @@ export default function VrijheidsplanWizard() {
     if (!Chart || !chartRef.current || !results) return;
     if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; }
     const labels = belegd.resultaten.map(r => `${r.van}-${r.tot}`);
+    const valueLabelPlugin = {
+      id: 'valueLabels',
+      afterDatasetsDraw(chart: any) {
+        const { ctx } = chart;
+        chart.data.datasets.forEach((dataset: any, dsIndex: number) => {
+          if (dataset.label !== 'Beleggen') return;
+          const meta = chart.getDatasetMeta(dsIndex);
+          meta.data.forEach((point: any, i: number) => {
+            const value = dataset.data[i];
+            if (!value) return;
+            ctx.save();
+            ctx.font = "700 10px Montserrat";
+            ctx.fillStyle = GF.paars;
+            ctx.textAlign = 'center';
+            ctx.fillText(eurRond(value), point.x, point.y - 10);
+            ctx.restore();
+          });
+        });
+      },
+    };
+
     chartInstance.current = new Chart(chartRef.current.getContext('2d'), {
+      plugins: [valueLabelPlugin],
       type: 'line',
       data: {
         labels,
@@ -152,6 +185,7 @@ export default function VrijheidsplanWizard() {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
         plugins: { legend: { labels: { font: { family: 'Montserrat', weight: '700', size: 11 }, color: GF.navy } } },
         scales: {
           x: { grid: { display: false }, ticks: { font: { size: 10 }, color: 'rgba(26,31,54,0.4)' } },
@@ -246,7 +280,7 @@ export default function VrijheidsplanWizard() {
             <div className="vp-card" style={{ textAlign: 'center' }}>
               <div className="vp-rocket">🚀</div>
               <span className="vp-badge">Het Vrijheidsplan</span>
-              <h1 className="vp-h1">Wat als je kind op z'n 40e nooit meer over geld hoeft te piekeren?</h1>
+              <h1 className="vp-h1">Wat als je kind op 40-jarige leeftijd nooit meer over geld hoeft te piekeren?</h1>
               <p className="vp-sub">Vul in 3 minuten in wat jouw kind opzij zet en zie precies wat dat wordt. Beleggen is geen belofte, het is een keuze die de tijd voor je laat werken.</p>
               <button className="vp-btn" onClick={volgende}>Start het Vrijheidsplan van mijn kind</button>
             </div>
@@ -258,6 +292,20 @@ export default function VrijheidsplanWizard() {
               <span className="vp-label">Voor wie maken we dit plan?</span>
               <h1 className="vp-h1">Hoe heet je kind?</h1>
               <input className="vp-input" type="text" placeholder="Bijv. Sophie" value={naam} onChange={e => setNaam(e.target.value)} />
+              <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                <button
+                  onClick={() => setGeslacht('meisje')}
+                  style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: `2px solid ${geslacht === 'meisje' ? GF.fuchsia : 'rgba(107,45,132,0.2)'}`, background: geslacht === 'meisje' ? 'rgba(226,27,112,0.08)' : '#fff', fontFamily: 'Montserrat, sans-serif', fontWeight: 700, fontSize: 13, color: GF.navy, cursor: 'pointer' }}
+                >
+                  Meisje
+                </button>
+                <button
+                  onClick={() => setGeslacht('jongen')}
+                  style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: `2px solid ${geslacht === 'jongen' ? GF.paars : 'rgba(107,45,132,0.2)'}`, background: geslacht === 'jongen' ? 'rgba(107,45,132,0.08)' : '#fff', fontFamily: 'Montserrat, sans-serif', fontWeight: 700, fontSize: 13, color: GF.navy, cursor: 'pointer' }}
+                >
+                  Jongen
+                </button>
+              </div>
               <div className="vp-nav">
                 <button className="vp-btn-ghost" onClick={vorige}>← Terug</button>
                 <button className="vp-btn" onClick={volgende} disabled={!naam.trim()}>Volgende</button>
@@ -268,7 +316,7 @@ export default function VrijheidsplanWizard() {
           {/* STAP 2 — DOEL */}
           {STAPPEN[stap] === 'doel' && (
             <div className="vp-card">
-              <span className="vp-label">Op welke leeftijd wil je dat {naamWeergave} dit geld tot z'n beschikking heeft?</span>
+              <span className="vp-label">Op welke leeftijd wil je dat {naamWeergave} dit geld tot {geslacht === 'meisje' ? 'haar' : 'zijn'} beschikking heeft?</span>
               <h1 className="vp-h1">De doelleeftijd van {naamWeergave}</h1>
               <p className="vp-sub">Een tiener heeft iets dat jij als volwassene nooit meer terugkrijgt: <strong>tijd</strong>. Elke euro die nu wordt ingelegd, krijgt jaren langer de kans om te groeien dan wanneer jijzelf op je 30e was begonnen. Die voorsprong in tijd is precies waar dit plan om draait.</p>
               <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 32, textAlign: 'center', color: GF.paars }}>{doel} jaar</div>
@@ -283,6 +331,7 @@ export default function VrijheidsplanWizard() {
           {/* STAP 3 — FASES */}
           {STAPPEN[stap] === 'fases' && (
             <div className="vp-card">
+              <img src={geslacht === 'meisje' ? '/keuze-sparen-uitgeven.png' : '/keuze-sparen-uitgeven-jongen.png'} alt="Sparen of uitgeven" style={{ width: '100%', borderRadius: 12, marginBottom: 18 }} />
               <span className="vp-label">Wat legt {naamWeergave} in, per levensfase?</span>
               <h1 className="vp-h1" style={{ fontSize: 22 }}>De tijdlijn van {naamWeergave}</h1>
               <p className="vp-sub" style={{ marginBottom: 18 }}>Leeftijden en inleg pas je aan door er gewoon in te klikken. Een fase niet van toepassing? Weg ermee met het kruisje. Mist er een fase? Voeg 'm toe onderaan.</p>
@@ -346,18 +395,21 @@ export default function VrijheidsplanWizard() {
                   <div className="vp-compare">
                     <div className="vp-cbox spaar">
                       <span className="vp-cbox-label">Als {naamWeergave} spaart</span>
-                      <div className="vp-cbox-val">{eur(spaarCount)}</div>
+                      <div className="vp-cbox-val">{eurRond(spaarCount)}</div>
                     </div>
                     <div className="vp-cbox beleggen">
-                      <span className="vp-cbox-label">Als {naamWeergave} belegt</span>
-                      <div className="vp-cbox-val" style={{ color: GF.paars }}>{eur(beleggenCount)}</div>
+                      <span className="vp-cbox-label">Als {naamWeergave} belegt, gemiddeld</span>
+                      <div className="vp-cbox-val" style={{ color: GF.paars }}>{eurRond(beleggenCount)}</div>
                     </div>
                   </div>
                   <div className="vp-verschil">
-                    <div className="vp-verschil-val">{eur(verschilCount)}</div>
+                    <div className="vp-verschil-val">{eurRond(verschilCount)}</div>
                     <div className="vp-verschil-sub">Dat verschil verdient {naamWeergave} niet met werken. Dat verdient {naamWeergave} met tijd.</div>
                   </div>
                   <div className="vp-chart-wrap"><canvas ref={chartRef}></canvas></div>
+                  <p style={{ fontSize: 11, color: GF.navy, opacity: 0.55, marginTop: 10, textAlign: 'center' }}>
+                    * Op basis van {rend}% gemiddeld jaarlijks rendement. Dit is een schatting, geen garantie. De werkelijke uitkomst kan hoger of lager zijn.
+                  </p>
                 </>
               )}
               <div className="vp-nav">
@@ -370,11 +422,14 @@ export default function VrijheidsplanWizard() {
           {/* STAP 6 — PLAN / PDF */}
           {STAPPEN[stap] === 'plan' && (
             <div className="vp-card" style={{ textAlign: 'center' }}>
-              <img src="/trots-moeder-kind.png" alt="Samen naar de toekomst" style={{ width: '100%', borderRadius: 12, marginBottom: 20 }} />
+              <img src="/kleine-stappen-grote-toekomst.png" alt="Kennis, vrijheid, groei, impact" style={{ width: '100%', borderRadius: 12, marginBottom: 20 }} />
               <h1 className="vp-h1">Het Vrijheidsplan van {naamWeergave} staat klaar</h1>
               <p className="vp-sub">4 pagina's, met de cijfers, de opbouw per levensfase, en wat er nog ontbreekt tussen dit plan en {naamWeergave} die het zelf leert doen.</p>
               <button className="vp-btn" onClick={() => window.print()}>📄 Download het Vrijheidsplan</button>
-              <div style={{ background: `linear-gradient(135deg, ${GF.navy}, ${GF.paars})`, color: '#fff', borderRadius: 14, padding: 22, marginTop: 22, textAlign: 'left' }}>
+              <p className="vp-sub" style={{ marginTop: 26, marginBottom: 10, fontSize: 14 }}>
+                Dit plan is het begin. Het laat zien wat kan, niet hoe {naamWeergave} het zelf leert doen. Dat verhaal gaat hieronder verder.
+              </p>
+              <div style={{ background: `linear-gradient(135deg, ${GF.navy}, ${GF.paars})`, color: '#fff', borderRadius: 14, padding: 22, marginTop: 10, textAlign: 'left' }}>
                 <p style={{ fontSize: 13, lineHeight: 1.7, margin: 0 }}>
                   <strong>Generatie Fearless</strong> is de cursus die jij als kind had willen hebben. Geef je kind de financiële voorsprong die jij nooit kreeg. Van hoe je omgaat met geld en inkomsten, het herkennen van financiële onzin op social media, tot het doen van de eerste belegging. De cursus is de manier waarop jij het samen met {naamWeergave} zelf leert doen.
                 </p>
@@ -396,8 +451,8 @@ export default function VrijheidsplanWizard() {
               .pg { page-break-after: always; padding: 50px 40px; font-family: 'Lora', serif; color: ${GF.navy}; min-height: 900px; box-sizing: border-box; }
               .pg:last-child { page-break-after: auto; }
               .pg h2 { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 26px; margin-bottom: 20px; }
-              .pg .kop-hero { text-align: center; padding-top: 100px; }
-              .pg .rocket-hero { font-size: 110px; }
+              .pg .kop-hero { text-align: center; padding-top: 40px; }
+              .pg .banner-hero { width: 100%; max-width: 480px; margin: 0 auto 30px; display: block; border-radius: 8px; }
               .pg .naam-hero { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 30px; color: ${GF.paars}; margin: 20px 0 8px; }
               .pg .sub-hero { font-style: italic; font-size: 14px; color: ${GF.navy}; }
               .pg .cbox-row { display: flex; gap: 20px; margin: 24px 0; }
@@ -405,17 +460,45 @@ export default function VrijheidsplanWizard() {
               .pg .fase-block { border-left: 4px solid; padding: 12px 16px; margin-bottom: 14px; border-radius: 6px; background: ${GF.smoke}; }
               .pg .actie-block { margin-bottom: 20px; }
               .pg .actie-block h4 { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 15px; margin-bottom: 6px; color: ${GF.paars}; }
-              .vc-report-disclaimer { font-size: 10px; opacity: 0.45; text-align: center; margin-top: 30px; }
+              .vc-report-disclaimer { font-size: 10px; opacity: 0.55; text-align: center; margin-top: 30px; line-height: 1.6; }
             `}</style>
 
             {/* PDF pagina 1 */}
-            <div className="pg kop-hero">
-              <div className="rocket-hero">🚀</div>
-              <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', color: GF.mint }}>Het Vrijheidsplan van</div>
-              <div className="naam-hero">{naamWeergave}</div>
-              <div className="sub-hero">Gemaakt op {new Date().toLocaleDateString('nl-NL')}. Een blik op wat tijd en geduld kunnen doen.</div>
-              <div style={{ marginTop: 260, fontSize: 14, fontStyle: 'italic', fontWeight: 700, color: GF.fuchsia, maxWidth: 380, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
-                Beleggen is geen belofte. Het is <span style={{ color: GF.mint }}>tijd</span>, <span style={{ color: GF.mint }}>geduld</span> en een <span style={{ color: GF.paars }}>voorsprong</span> die maar één keer in het leven van {naamWeergave} zo groot is als nu.
+            <div className="pg kop-hero" style={{ display: 'flex', flexDirection: 'column', minHeight: 900, paddingBottom: 30 }}>
+              <img src="/banner-generatie-fearless.png" alt="Generatie Fearless" className="banner-hero" style={{ marginBottom: 24 }} />
+
+              <div style={{ display: 'inline-block', margin: '0 auto 18px', border: `1.5px solid ${GF.mint}`, borderRadius: 20, padding: '5px 16px', fontFamily: 'Montserrat, sans-serif', fontWeight: 700, fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', color: GF.mint }}>
+                Persoonlijk Vrijheidsplan
+              </div>
+
+              <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 26, color: GF.navy, lineHeight: 1.2, textAlign: 'center' }}>
+                Het plan van<br /><span style={{ color: GF.mint, fontSize: 48 }}>{naamWeergave}</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 0, margin: '30px auto', maxWidth: 460, borderTop: `1px solid rgba(107,45,132,0.15)`, borderBottom: `1px solid rgba(107,45,132,0.15)`, padding: '20px 0' }}>
+                <div style={{ flex: 1, textAlign: 'center', borderRight: `1px solid rgba(107,45,132,0.15)` }}>
+                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 20, color: GF.paars }}>{rend}%</div>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.6 }}>Gem. rendement</div>
+                </div>
+                <div style={{ flex: 1, textAlign: 'center', borderRight: `1px solid rgba(107,45,132,0.15)` }}>
+                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 20, color: GF.paars }}>{belegd.totaalJaren}</div>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.6 }}>Jaar de tijd</div>
+                </div>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 20, color: GF.mint }}>{eurRond(belegd.eindKapitaal)}</div>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.6 }}>Op {geslacht === 'meisje' ? 'haar' : 'zijn'} {doel}e</div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 'auto', marginBottom: 30, background: GF.smoke, borderRadius: 14, padding: '28px 30px', maxWidth: 400, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
+                <div style={{ fontSize: 40, fontFamily: 'Montserrat, sans-serif', color: 'rgba(107,45,132,0.2)', lineHeight: 0.5, marginBottom: 10 }}>"</div>
+                <div style={{ fontSize: 15, fontStyle: 'italic', fontWeight: 700, color: GF.fuchsia, lineHeight: 1.6 }}>
+                  Beleggen is geen belofte. Het is <span style={{ color: GF.mint }}>tijd</span>, <span style={{ color: GF.mint }}>geduld</span> en een <span style={{ color: GF.paars }}>voorsprong</span> die maar één keer in het leven van {naamWeergave} zo groot is als nu.
+                </div>
+              </div>
+
+              <div style={{ fontSize: 11, fontStyle: 'italic', color: GF.navy, opacity: 0.5, textAlign: 'center' }}>
+                Gemaakt op {new Date().toLocaleDateString('nl-NL')}
               </div>
             </div>
 
@@ -425,32 +508,43 @@ export default function VrijheidsplanWizard() {
               <div className="cbox-row">
                 <div className="cbox" style={{ background: 'rgba(26,31,54,0.05)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: GF.navy, textTransform: 'uppercase' }}>Als {naamWeergave} spaart</div>
-                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 24 }}>{eur(gespaard.eindKapitaal)}</div>
+                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 24 }}>{eurRond(gespaard.eindKapitaal)}</div>
                 </div>
                 <div className="cbox" style={{ background: 'rgba(107,45,132,0.08)', border: `1.5px solid ${GF.paars}` }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: GF.navy, textTransform: 'uppercase' }}>Als {naamWeergave} belegt</div>
-                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 24, color: GF.paars }}>{eur(belegd.eindKapitaal)}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: GF.navy, textTransform: 'uppercase' }}>Als {naamWeergave} belegt, gemiddeld</div>
+                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 24, color: GF.paars }}>{eurRond(belegd.eindKapitaal)}</div>
                 </div>
               </div>
               <div style={{ textAlign: 'center', margin: '24px 0' }}>
-                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 32, color: GF.mint }}>{eur(verschil)}</div>
+                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 32, color: GF.mint }}>{eurRond(verschil)}</div>
                 <div style={{ fontStyle: 'italic', fontSize: 13, color: GF.navy }}>Dat verschil verdient {naamWeergave} niet met werken. Dat verdient {naamWeergave} met tijd.</div>
               </div>
-              <div style={{ fontSize: 11, opacity: 0.5, marginTop: 30 }}>
-                Berekend met een gemiddeld rendement van {rend}% per jaar, over {belegd.totaalJaren} jaar. Rendementen uit het verleden bieden geen garantie voor de toekomst.
+              <div style={{ background: GF.smoke, borderLeft: `3px solid ${GF.mint}`, borderRadius: 8, padding: '16px 18px', fontSize: 12, lineHeight: 1.7, color: GF.navy, marginTop: 24 }}>
+                <strong style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 13, display: 'block', marginBottom: 6 }}>Waarom rekenen we met 10%?</strong>
+                Dit is geen wensdenken. Het is het historisch gemiddelde van breed gespreide ETF's. Dat betekent niet dat elk jaar 10% oplevert.
+                Sommige jaren staat de teller op een negatief rendement, andere jaren dik in de plus.
+                Maar als je al die jaren bij elkaar optelt en daar het gemiddelde van neemt, dan komt het uit op gemiddeld 10%. Daarom is het zo ontzettend belangrijk dat als je gaat beleggen, je dit ook echt voor zeer lange tijd gaat doen.
+                Rendementen uit het verleden bieden geen garantie voor de toekomst, dat blijft altijd waar.
+                Maar tijd en geduld zijn de 2 dingen die dit gemiddelde laten werken, en die heeft een tiener in overvloed.
+              </div>
+              <div style={{ fontSize: 11, opacity: 0.5, marginTop: 16 }}>
+                Berekend met een gemiddeld rendement van {rend}% per jaar bij beleggen, over {belegd.totaalJaren} jaar. Voor sparen is gerekend met {SPAARRENTE}% rente per jaar. Rendementen uit het verleden bieden geen garantie voor de toekomst.
               </div>
             </div>
 
             {/* PDF pagina 3 */}
             <div className="pg">
               <h2>Zo bouwt {naamWeergave} het op, stap voor stap</h2>
+              <p style={{ fontSize: 12, fontStyle: 'italic', color: GF.navy, opacity: 0.6, marginTop: -12, marginBottom: 24 }}>
+                De meeste rekentools werken met één vast bedrag, van dag één tot het einde. Dit plan rekent met {naamWeergave}'s hele investeerdersleven, van zakgeld tot salaris, in één doorlopende berekening.
+              </p>
               {belegd.resultaten.map((r, i) => {
                 const context = ['Dit is zakgeld of klusgeld dat ' + naamWeergave + ' opzij zet in plaats van uitgeeft.', naamWeergave + ' heeft een bijbaantje en legt een groter deel opzij.', 'Eerste serieuze baan, serieuzer bedrag.', 'Carrière gemaakt, inkomen op niveau. ' + naamWeergave + ' legt nu fors meer in, met minder moeite dan het ooit kostte.'][i] || '';
                 return (
                   <div key={i} className="fase-block" style={{ borderColor: KLEUREN[i % KLEUREN.length] }}>
                     <strong>{r.van} tot {r.tot} jaar, € {r.bedrag}/mnd</strong>
                     <div style={{ fontSize: 13, margin: '4px 0' }}>{context}</div>
-                    <div style={{ fontSize: 13 }}>Ingelegd: {eur(r.ingelegd)}. Groeit naar: {eur(r.kapNa)}.</div>
+                    <div style={{ fontSize: 13 }}>Ingelegd: {eur(r.ingelegd)}. Groeit gemiddeld naar: {eurRond(r.kapNa)}.</div>
                   </div>
                 );
               })}
@@ -458,19 +552,23 @@ export default function VrijheidsplanWizard() {
                 <div className="fase-block" style={{ borderColor: GF.mint }}>
                   <strong>{belegd.resultaten[belegd.resultaten.length - 1].tot} tot {doel} jaar, geen inleg meer</strong>
                   <div style={{ fontSize: 13, margin: '4px 0' }}>Vanaf hier doet {naamWeergave} niets meer. Het geld werkt door, vanzelf.</div>
-                  <div style={{ fontSize: 13 }}>Groeit naar: {eur(belegd.eindKapitaal)}.</div>
+                  <div style={{ fontSize: 13 }}>Groeit gemiddeld naar: {eurRond(belegd.eindKapitaal)}.</div>
                 </div>
               )}
+              <p style={{ fontSize: 10, color: GF.navy, opacity: 0.5, marginTop: 20 }}>
+                * Op basis van {rend}% gemiddeld jaarlijks rendement. Dit zijn schattingen, geen garanties. De werkelijke uitkomst kan hoger of lager zijn.
+              </p>
             </div>
 
             {/* PDF pagina 4 */}
             <div className="pg">
               <h2>Dit plan laat zien wat kan. Niet hoe je het veilig doet.</h2>
               <div className="actie-block">
-                <h4>{naamWeergave} gaat dit zelf doen, ooit</h4>
-                <p style={{ fontSize: 13, lineHeight: 1.7 }}>Dit plan toont het eindresultaat. Maar hoe leer je je kind verantwoordelijk om te gaan met geld en ook echt de eerste stap zetten naar vermogen opbouwen? Een verkeerd gekozen belegging kan je geld kosten in plaats van geld opleveren.</p>
+                <h4>Wachten tot {naamWeergave} 18 is, is te laat</h4>
+                <p style={{ fontSize: 13, lineHeight: 1.7 }}>Het is jouw verantwoordelijkheid als ouder om {naamWeergave} te leren hoe {geslacht === 'meisje' ? 'zij' : 'hij'} slim omgaat met geld en later met inkomen, en hoe {geslacht === 'meisje' ? 'zij' : 'hij'} vermogen opbouwt. <strong>Dit leren ze niet op school.</strong> Hoe eerder je begint, hoe groter de voorsprong. Wacht je tot {naamWeergave} 18 is, dan zijn de gewoontes al gevormd en ben je precies het momentum kwijt waar dit plan om draait.</p>
               </div>
               <div className="actie-block">
+                <img src={geslacht === 'meisje' ? '/tiktok-wormhole-meisje.png' : '/tiktok-wormhole.png'} alt="TikTok en crypto-hypes" style={{ width: 160, display: 'block', margin: '10px auto', borderRadius: 8 }} />
                 <h4>De wereld van {naamWeergave} praat al over geld, alleen niet op deze manier</h4>
                 <p style={{ fontSize: 13, lineHeight: 1.7 }}>TikTok en YouTube staan vol met snel-rijk-worden praatjes, crypto-hypes en beloftes die nergens op slaan. Een tiener die nog geen fundament heeft, is een makkelijk doelwit voor dat soort onzin. Kennis en signalen herkennen is het schild dat jij je kind kunt meegeven. Dat is het wapen tegen die ruis.</p>
               </div>
@@ -478,8 +576,18 @@ export default function VrijheidsplanWizard() {
                 <h4>Van plan naar gewoonte is de grootste stap</h4>
                 <p style={{ fontSize: 13, lineHeight: 1.7 }}>De uitslag in dit rapport motiveert misschien een paar weken. Een kind dat zelf snapt waarom het dit doet, houdt het jaren vol. Dat verschil zit 'm niet in de cijfers, maar in hoe je het uitlegt, op het niveau van een tiener.</p>
               </div>
-              <div style={{ background: `linear-gradient(135deg, ${GF.navy}, ${GF.paars})`, color: '#fff', borderRadius: 12, padding: 22, marginTop: 24 }}>
-                <img src="/trots-moeder-kind.png" alt="Samen naar de toekomst" style={{ width: '100%', borderRadius: 8, marginBottom: 16 }} />
+              <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginTop: 24, paddingTop: 20, borderTop: `1px solid rgba(107,45,132,0.15)` }}>
+                <img src="/claudia-portret.png" alt="Claudia Voogt" style={{ width: 54, height: 54, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', color: GF.mint, marginBottom: 4 }}>Wie is Claudia Voogt?</div>
+                  <p style={{ fontSize: 12, lineHeight: 1.7, margin: 0 }}>
+                    22 jaar was ik financieel adviseur voor meer dan 3.000 klanten. Ik leerde mijn eigen zoon al op jonge leeftijd slim omgaan met zijn zakgeld. Op zijn 11e legde ik hem uit hoe beleggen écht werkt. Hij was even stil, en riep: <span style={{ color: GF.fuchsia, fontStyle: 'italic', fontWeight: 700 }}>"Mam, ik krijg nu echt een breinexplosie. Dit is gewoon infinity money!!"</span> Dat moment wilde ik voor elk kind mogelijk maken. Daarom bouwde ik Generatie Fearless.
+                  </p>
+                </div>
+              </div>
+              <img src={geslacht === 'meisje' ? '/moeder-dochter.png' : '/trots-moeder-kind.png'} alt="Samen naar de toekomst" style={{ width: '100%', maxWidth: 340, display: 'block', margin: '24px auto 0', borderRadius: 10 }} />
+              <div style={{ background: `linear-gradient(135deg, ${GF.navy}, ${GF.paars})`, color: '#fff', borderRadius: 12, padding: 22, marginTop: 14 }}>
+                <img src="/kleine-stappen-grote-toekomst.png" alt="Kennis, vrijheid, groei, impact" style={{ width: 150, display: 'block', margin: '0 auto 16px', borderRadius: 8 }} />
                 <p style={{ fontSize: 13, lineHeight: 1.7, margin: 0 }}>
                   <strong>Generatie Fearless</strong> is de cursus die jij als kind had willen hebben. Geef je kind de financiële voorsprong die jij nooit kreeg. Van hoe je omgaat met geld en inkomsten, het herkennen van financiële onzin op social media, tot het doen van de eerste belegging. De cursus is de manier waarop jij het samen met {naamWeergave} zelf leert doen.
                 </p>
@@ -488,8 +596,9 @@ export default function VrijheidsplanWizard() {
                 </p>
               </div>
               <p className="vc-report-disclaimer">
-                Gemaakt met het Vrijheidsplan van claudiavoogt.nl, beleggingsexpert &amp; investeringsmentor.
-                © {new Date().getFullYear()} Claudia Voogt. Alle rechten voorbehouden.
+                <a href="https://claudiavoogt.nl" style={{ color: GF.paars, fontWeight: 700 }}>claudiavoogt.nl</a> — Beleggingsexpert &amp; investeringsmentor<br />
+                © {new Date().getFullYear()} Claudia Voogt. Alle rechten voorbehouden. Deze tool mag niet worden gedeeld, gekopieerd, nagebouwd of hergebruikt zonder schriftelijke toestemming.<br />
+                Deze tool is een hulpmiddel, geen beleggingsadvies. De informatie is met zorg samengesteld, maar er kunnen geen rechten aan worden ontleend. Juistheid en volledigheid worden niet gegarandeerd.
               </p>
             </div>
           </div>
@@ -505,6 +614,9 @@ export default function VrijheidsplanWizard() {
         </p>
         <p className="vc-copy" style={{ marginTop: 6, color: '#ffffff', opacity: 0.9, fontSize: 11 }}>
           © {new Date().getFullYear()} Claudia Voogt. Alle rechten voorbehouden. Deze tool mag niet worden gedeeld, gekopieerd, nagebouwd of hergebruikt zonder schriftelijke toestemming.
+        </p>
+        <p className="vc-copy" style={{ marginTop: 6, color: '#ffffff', opacity: 0.7, fontSize: 11 }}>
+          Deze tool is een hulpmiddel, geen beleggingsadvies. De informatie is met zorg samengesteld, maar er kunnen geen rechten aan worden ontleend. Juistheid en volledigheid worden niet gegarandeerd.
         </p>
       </footer>
     </>
