@@ -374,6 +374,9 @@ export default function VrijheidsplanWizard() {
               <h1 className="vp-h1">Het Vrijheidsplan van {naamWeergave} staat klaar</h1>
               <p className="vp-sub">4 pagina's, met de cijfers, de opbouw per levensfase, en wat er nog ontbreekt tussen dit plan en {naamWeergave} die het zelf leert doen.</p>
               <button className="vp-btn" onClick={() => window.print()}>📄 Download het Vrijheidsplan</button>
+              <p style={{ fontFamily: 'Lora, serif', fontStyle: 'italic', fontSize: 13, opacity: 0.6, marginTop: 18, marginBottom: 0 }}>
+                Wil je niet wachten? <a href="https://generatiefearless.claudiavoogt.nl/" style={{ color: GF.paars, fontWeight: 700 }}>Bekijk de cursus direct</a>
+              </p>
               <div className="vp-nav" style={{ justifyContent: 'center', marginTop: 20 }}>
                 <button className="vp-btn-ghost" onClick={vorige}>← Terug naar de cijfers</button>
               </div>
