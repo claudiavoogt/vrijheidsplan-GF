@@ -374,9 +374,14 @@ export default function VrijheidsplanWizard() {
               <h1 className="vp-h1">Het Vrijheidsplan van {naamWeergave} staat klaar</h1>
               <p className="vp-sub">4 pagina's, met de cijfers, de opbouw per levensfase, en wat er nog ontbreekt tussen dit plan en {naamWeergave} die het zelf leert doen.</p>
               <button className="vp-btn" onClick={() => window.print()}>📄 Download het Vrijheidsplan</button>
-              <p style={{ fontFamily: 'Lora, serif', fontStyle: 'italic', fontSize: 13, opacity: 0.6, marginTop: 18, marginBottom: 0 }}>
-                Wil je niet wachten? <a href="https://generatiefearless.claudiavoogt.nl/" style={{ color: GF.paars, fontWeight: 700 }}>Bekijk de cursus direct</a>
-              </p>
+              <div style={{ background: `linear-gradient(135deg, ${GF.navy}, ${GF.paars})`, color: '#fff', borderRadius: 14, padding: 22, marginTop: 22, textAlign: 'left' }}>
+                <p style={{ fontSize: 13, lineHeight: 1.7, margin: 0 }}>
+                  <strong>Generatie Fearless</strong> is de cursus die jij als kind had willen hebben. Geef je kind de financiële voorsprong die jij nooit kreeg. Van hoe je omgaat met geld en inkomsten, het herkennen van financiële onzin op social media, tot het doen van de eerste belegging. De cursus is de manier waarop jij het samen met {naamWeergave} zelf leert doen.
+                </p>
+                <p style={{ fontSize: 13, lineHeight: 1.7, marginTop: 14, marginBottom: 0 }}>
+                  <a href="https://generatiefearless.claudiavoogt.nl/" style={{ color: GF.mint, fontWeight: 800, textDecoration: 'underline' }}>Bekijk de cursus direct →</a>
+                </p>
+              </div>
               <div className="vp-nav" style={{ justifyContent: 'center', marginTop: 20 }}>
                 <button className="vp-btn-ghost" onClick={vorige}>← Terug naar de cijfers</button>
               </div>
