@@ -317,10 +317,10 @@ export default function VrijheidsplanWizard() {
           {STAPPEN[stap] === 'doel' && (
             <div className="vp-card">
               <span className="vp-label">Op welke leeftijd wil je dat {naamWeergave} dit geld tot {geslacht === 'meisje' ? 'haar' : 'zijn'} beschikking heeft?</span>
-              <h1 className="vp-h1">De doelleeftijd van {naamWeergave}</h1>
+              <h1 className="vp-h1">De <span style={{ color: GF.mint }}>doelleeftijd</span> van {naamWeergave}</h1>
               <p className="vp-sub">Een tiener heeft iets dat jij als volwassene nooit meer terugkrijgt: <strong>tijd</strong>. Elke euro die nu wordt ingelegd, krijgt jaren langer de kans om te groeien dan wanneer jijzelf op je 30e was begonnen. Die voorsprong in tijd is precies waar dit plan om draait.</p>
               <p className="vp-sub" style={{ marginTop: -10 }}>Denk hier niet in vijf of tien jaar. De AOW-leeftijd voor de kinderen van nu wordt geschat op <strong>72 jaar</strong>. Zet je plan zo neer dat {naamWeergave} daar niet op hoeft te wachten.</p>
-              <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 32, textAlign: 'center', color: GF.paars }}>{doel} jaar</div>
+              <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 32, textAlign: 'center', color: GF.mint }}>{doel} jaar</div>
               <input className="vp-slider" type="range" min={15} max={80} value={doel} onChange={e => setDoel(parseInt(e.target.value))} />
               <div className="vp-nav">
                 <button className="vp-btn-ghost" onClick={vorige}>← Terug</button>
