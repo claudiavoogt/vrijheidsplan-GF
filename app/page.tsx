@@ -527,42 +527,7 @@ export default function VrijheidsplanWizard() {
               </div>
             </div>
 
-            {/* PDF pagina 2 */}
-            <div className="pg">
-              <h2>Dit bouwt {naamWeergave} zelf op</h2>
-              <div className="cbox-row">
-                <div className="cbox" style={{ background: '#ffffff', border: `1.5px solid rgba(26,31,54,0.15)` }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: GF.navy, textTransform: 'uppercase' }}>Als {naamWeergave} spaart</div>
-                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 24 }}>{eurRond(gespaard.eindKapitaal)}</div>
-                </div>
-                <div className="cbox" style={{ background: 'rgba(107,45,132,0.08)', border: `1.5px solid ${GF.paars}` }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: GF.navy, textTransform: 'uppercase' }}>Als {naamWeergave} belegt, gemiddeld</div>
-                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 24, color: GF.paars }}>{eurRond(belegd.eindKapitaal)}</div>
-                </div>
-              </div>
-              <div style={{ textAlign: 'center', margin: '24px 0' }}>
-                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 32, color: GF.mint }}>{eurRond(verschil)}</div>
-                <div style={{ fontStyle: 'italic', fontSize: 13, color: GF.navy }}>Dat verschil verdient {naamWeergave} niet met werken. Dat verdient {naamWeergave} met tijd.</div>
-              </div>
-              <div style={{ background: `linear-gradient(135deg, rgba(107,45,132,0.06), rgba(62,220,177,0.08))`, borderRadius: 12, padding: '20px 22px', textAlign: 'center', margin: '20px 0' }}>
-                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: GF.paars, marginBottom: 6 }}>Volgens de 4%-regel zou dit kunnen zijn</div>
-                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 30, color: GF.mint }}>{eurRond((belegd.eindKapitaal * 0.04) / 12)}</div>
-                <div style={{ fontFamily: 'Lora, serif', fontStyle: 'italic', fontSize: 12, color: GF.navy, opacity: 0.7, marginTop: 4 }}><strong>per maand, vanaf {geslacht === 'meisje' ? 'haar' : 'zijn'} {doel}e, voor de rest van {geslacht === 'meisje' ? 'haar' : 'zijn'} leven</strong>, zonder het vermogen zelf aan te spreken</div>
-              </div>
-              <div style={{ background: '#ffffff', border: `1px solid rgba(107,45,132,0.15)`, borderLeft: `3px solid ${GF.mint}`, borderRadius: 8, padding: '16px 18px', fontSize: 12, lineHeight: 1.7, color: GF.navy, marginTop: 24 }}>
-                <strong style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 13, display: 'block', marginBottom: 6 }}>Waarom rekenen we met 10%?</strong>
-                Dit is geen wensdenken. Het is het historisch gemiddelde van breed gespreide ETF's. Dat betekent niet dat elk jaar 10% oplevert.
-                Sommige jaren staat de teller op een negatief rendement, andere jaren dik in de plus.
-                Maar als je al die jaren bij elkaar optelt en daar het gemiddelde van neemt, dan komt het uit op gemiddeld 10%. Daarom is het zo ontzettend belangrijk dat als je gaat beleggen, je dit ook echt voor zeer lange tijd gaat doen.
-                Rendementen uit het verleden bieden geen garantie voor de toekomst, dat blijft altijd waar.
-                Maar tijd en geduld zijn de 2 dingen die dit gemiddelde laten werken, en die heeft een tiener in overvloed.
-              </div>
-              <div style={{ fontSize: 11, opacity: 0.5, marginTop: 16 }}>
-                Berekend met een gemiddeld rendement van {rend}% per jaar bij beleggen, over {belegd.totaalJaren} jaar. Voor sparen is gerekend met {SPAARRENTE}% rente per jaar. Het maandbedrag is gebaseerd op de 4%-regel, een vuistregel, geen garantie. Rendementen uit het verleden bieden geen garantie voor de toekomst.
-              </div>
-            </div>
-
-            {/* PDF pagina 3 */}
+            {/* PDF pagina 2 (voorheen pagina 3) */}
             <div className="pg">
               <h2>Zo bouwt {naamWeergave} het op, stap voor stap</h2>
               <p style={{ fontSize: 12, fontStyle: 'italic', color: GF.navy, opacity: 0.6, marginTop: -12, marginBottom: 24 }}>
@@ -596,6 +561,41 @@ export default function VrijheidsplanWizard() {
               <p style={{ fontSize: 10, color: GF.navy, opacity: 0.5, marginTop: 20 }}>
                 * Op basis van {rend}% gemiddeld jaarlijks rendement. Dit zijn schattingen, geen garanties. De werkelijke uitkomst kan hoger of lager zijn.
               </p>
+            </div>
+
+            {/* PDF pagina 3 (voorheen pagina 2) */}
+            <div className="pg">
+              <h2>Dit bouwt {naamWeergave} zelf op</h2>
+              <div className="cbox-row">
+                <div className="cbox" style={{ background: '#ffffff', border: `1.5px solid rgba(26,31,54,0.15)` }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: GF.navy, textTransform: 'uppercase' }}>Als {naamWeergave} spaart</div>
+                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 24 }}>{eurRond(gespaard.eindKapitaal)}</div>
+                </div>
+                <div className="cbox" style={{ background: 'rgba(107,45,132,0.08)', border: `1.5px solid ${GF.paars}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: GF.navy, textTransform: 'uppercase' }}>Als {naamWeergave} belegt, gemiddeld</div>
+                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 24, color: GF.paars }}>{eurRond(belegd.eindKapitaal)}</div>
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', margin: '24px 0' }}>
+                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 32, color: GF.mint }}>{eurRond(verschil)}</div>
+                <div style={{ fontStyle: 'italic', fontSize: 13, color: GF.navy }}>Dat verschil verdient {naamWeergave} niet met werken. Dat verdient {naamWeergave} met tijd.</div>
+              </div>
+              <div style={{ background: `linear-gradient(135deg, rgba(107,45,132,0.06), rgba(62,220,177,0.08))`, borderRadius: 12, padding: '20px 22px', textAlign: 'center', margin: '20px 0' }}>
+                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: GF.paars, marginBottom: 6 }}>Volgens de 4%-regel zou dit kunnen zijn</div>
+                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 30, color: GF.mint }}>{eurRond((belegd.eindKapitaal * 0.04) / 12)}</div>
+                <div style={{ fontFamily: 'Lora, serif', fontStyle: 'italic', fontSize: 12, color: GF.navy, opacity: 0.7, marginTop: 4 }}><strong>per maand, vanaf {geslacht === 'meisje' ? 'haar' : 'zijn'} {doel}e, voor de rest van {geslacht === 'meisje' ? 'haar' : 'zijn'} leven</strong>, zonder het vermogen zelf aan te spreken</div>
+              </div>
+              <div style={{ background: '#ffffff', border: `1px solid rgba(107,45,132,0.15)`, borderLeft: `3px solid ${GF.mint}`, borderRadius: 8, padding: '16px 18px', fontSize: 12, lineHeight: 1.7, color: GF.navy, marginTop: 24 }}>
+                <strong style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 13, display: 'block', marginBottom: 6 }}>Waarom rekenen we met 10%?</strong>
+                Dit is geen wensdenken. Het is het historisch gemiddelde van breed gespreide ETF's. Dat betekent niet dat elk jaar 10% oplevert.
+                Sommige jaren staat de teller op een negatief rendement, andere jaren dik in de plus.
+                Maar als je al die jaren bij elkaar optelt en daar het gemiddelde van neemt, dan komt het uit op gemiddeld 10%. Daarom is het zo ontzettend belangrijk dat als je gaat beleggen, je dit ook echt voor zeer lange tijd gaat doen.
+                Rendementen uit het verleden bieden geen garantie voor de toekomst, dat blijft altijd waar.
+                Maar tijd en geduld zijn de 2 dingen die dit gemiddelde laten werken, en die heeft een tiener in overvloed.
+              </div>
+              <div style={{ fontSize: 11, opacity: 0.5, marginTop: 16 }}>
+                Berekend met een gemiddeld rendement van {rend}% per jaar bij beleggen, over {belegd.totaalJaren} jaar. Voor sparen is gerekend met {SPAARRENTE}% rente per jaar. Het maandbedrag is gebaseerd op de 4%-regel, een vuistregel, geen garantie. Rendementen uit het verleden bieden geen garantie voor de toekomst.
+              </div>
             </div>
 
             {/* PDF pagina 4 */}
