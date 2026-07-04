@@ -42,10 +42,13 @@ interface Results {
 const SPAARRENTE = 1.5;
 
 const DEFAULT_FASES: Fase[] = [
-  { van: 11, tot: 16, bedrag: 10 },
-  { van: 16, tot: 18, bedrag: 25 },
-  { van: 18, tot: 30, bedrag: 75 },
-  { van: 30, tot: 50, bedrag: 150 },
+  { van: 13, tot: 14, bedrag: 30 },
+  { van: 14, tot: 16, bedrag: 100 },
+  { van: 16, tot: 18, bedrag: 200 },
+  { van: 18, tot: 23, bedrag: 300 },
+  { van: 23, tot: 30, bedrag: 250 },
+  { van: 30, tot: 40, bedrag: 300 },
+  { van: 40, tot: 45, bedrag: 350 },
 ];
 
 function eur(n: number): string {
@@ -79,7 +82,7 @@ function useCountUp(target: number, duration = 1400, trigger = true) {
   return val;
 }
 
-const STAPPEN = ['welkom', 'naam', 'doel', 'fases', 'rendement', 'onthulling', 'plan'];
+const STAPPEN = ['welkom', 'naam', 'doel', 'fases', 'rendement', 'onthulling', 'vrijheid', 'plan'];
 
 export default function VrijheidsplanWizard() {
   const [stap, setStap] = useState(0);
@@ -338,7 +341,7 @@ export default function VrijheidsplanWizard() {
               <h1 className="vp-h1" style={{ fontSize: 22 }}>De tijdlijn van {naamWeergave}</h1>
               <p className="vp-sub" style={{ marginBottom: 18 }}>Leeftijden en inleg pas je aan door er gewoon in te klikken. Een fase niet van toepassing? Weg ermee met het kruisje. Mist er een fase? Voeg 'm toe onderaan.</p>
               {fases.map((f, i) => {
-                const context = ['zakgeld of klusgeld', 'bijbaantje begint', 'eerste baan, serieuzer bedrag', 'carrière gemaakt, inkomen op niveau'][i] || '';
+                const context = ['zakgeld of klusgeld', 'bijbaantje begint', 'vast bijbaantje, serieuzer bedrag', 'studie of eerste baan, inkomen bouwt op', 'net gestart in loondienst, inkomen nog wisselend', 'carrière gemaakt, inkomen op niveau', "inkomen op z'n hoogtepunt"][i] || '';
                 return (
                   <div key={i}>
                     <div className="vp-fase-row">
@@ -416,7 +419,27 @@ export default function VrijheidsplanWizard() {
               )}
               <div className="vp-nav">
                 <button className="vp-btn-ghost" onClick={vorige}>← Terug</button>
-                <button className="vp-btn" onClick={volgende} disabled={laden || !results}>Bekijk het plan</button>
+                <button className="vp-btn" onClick={volgende} disabled={laden || !results}>Volgende</button>
+              </div>
+            </div>
+          )}
+
+          {/* STAP EXTRA — VRIJHEID IN MAANDBEDRAG (4%-regel) */}
+          {STAPPEN[stap] === 'vrijheid' && (
+            <div className="vp-card">
+              <h1 className="vp-h1">Wat betekent dit voor {naamWeergave}'s vrijheid?</h1>
+              <p className="vp-sub">{eurRond(belegd.eindKapitaal)} is een bedrag. Maar wat kan {naamWeergave} daar écht mee? Beleggers gebruiken al jaren de <strong>4%-regel</strong>, een vuistregel die zegt hoeveel je jaarlijks van je opgebouwde vermogen kunt opnemen <strong style={{ color: GF.mint }}>zonder dat het ooit opraakt</strong>.</p>
+              <div style={{ background: GF.smoke, borderRadius: 14, padding: '28px 20px', textAlign: 'center', margin: '20px 0' }}>
+                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: GF.paars, marginBottom: 6 }}>Bij 4% per jaar zou dit kunnen zijn</div>
+                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 40, color: GF.mint }}>{eurRond((belegd.eindKapitaal * 0.04) / 12)}</div>
+                <div style={{ fontFamily: 'Lora, serif', fontStyle: 'italic', fontSize: 13, opacity: 0.65, marginTop: 4 }}><strong>per maand, vanaf {geslacht === 'meisje' ? 'haar' : 'zijn'} {doel}e, voor de rest van {geslacht === 'meisje' ? 'haar' : 'zijn'} leven</strong></div>
+              </div>
+              <p style={{ fontSize: 11, color: GF.navy, opacity: 0.55, lineHeight: 1.6 }}>
+                * De 4%-regel is een vuistregel, geen garantie. De werkelijke uitkomst hangt af van rendement, inflatie en hoe lang het kapitaal moet meegaan. Dit is geen beleggingsadvies.
+              </p>
+              <div className="vp-nav">
+                <button className="vp-btn-ghost" onClick={vorige}>← Terug</button>
+                <button className="vp-btn" onClick={volgende}>Bekijk het plan</button>
               </div>
             </div>
           )}
@@ -448,9 +471,9 @@ export default function VrijheidsplanWizard() {
 
         {/* ── PRINT-ONLY PDF LAYOUT (4 pagina's) ── */}
         {results && (
-          <div className="vp-print-only">
+          <div className="vp-print-only" style={{ background: '#ffffff' }}>
             <style>{`
-              .pg { page-break-after: always; padding: 50px 40px; font-family: 'Lora', serif; color: ${GF.navy}; min-height: 900px; box-sizing: border-box; }
+              .pg { page-break-after: always; padding: 50px 40px; font-family: 'Lora', serif; color: ${GF.navy}; min-height: 900px; box-sizing: border-box; background: #ffffff; }
               .pg:last-child { page-break-after: auto; }
               .pg h2 { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 26px; margin-bottom: 20px; }
               .pg .kop-hero { text-align: center; padding-top: 40px; }
@@ -459,7 +482,7 @@ export default function VrijheidsplanWizard() {
               .pg .sub-hero { font-style: italic; font-size: 14px; color: ${GF.navy}; }
               .pg .cbox-row { display: flex; gap: 20px; margin: 24px 0; }
               .pg .cbox { flex: 1; padding: 22px; border-radius: 12px; text-align: center; }
-              .pg .fase-block { border-left: 4px solid; padding: 12px 16px; margin-bottom: 14px; border-radius: 6px; background: ${GF.smoke}; }
+              .pg .fase-block { border-left: 4px solid; padding: 12px 16px; margin-bottom: 14px; border-radius: 6px; background: #ffffff; }
               .pg .actie-block { margin-bottom: 20px; }
               .pg .actie-block h4 { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 15px; margin-bottom: 6px; color: ${GF.paars}; }
               .vc-report-disclaimer { font-size: 10px; opacity: 0.55; text-align: center; margin-top: 30px; line-height: 1.6; }
@@ -492,7 +515,7 @@ export default function VrijheidsplanWizard() {
                 </div>
               </div>
 
-              <div style={{ marginTop: 'auto', marginBottom: 30, background: GF.smoke, borderRadius: 14, padding: '28px 30px', maxWidth: 400, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
+              <div style={{ marginTop: 'auto', marginBottom: 30, background: '#ffffff', border: `1px solid rgba(107,45,132,0.15)`, borderRadius: 14, padding: '28px 30px', maxWidth: 400, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
                 <div style={{ fontSize: 40, fontFamily: 'Montserrat, sans-serif', color: 'rgba(107,45,132,0.2)', lineHeight: 0.5, marginBottom: 10 }}>"</div>
                 <div style={{ fontSize: 15, fontStyle: 'italic', fontWeight: 700, color: GF.fuchsia, lineHeight: 1.6 }}>
                   Beleggen is geen belofte. Het is <span style={{ color: GF.mint }}>tijd</span>, <span style={{ color: GF.mint }}>geduld</span> en een <span style={{ color: GF.paars }}>voorsprong</span> die maar één keer in het leven van {naamWeergave} zo groot is als nu.
@@ -508,7 +531,7 @@ export default function VrijheidsplanWizard() {
             <div className="pg">
               <h2>Dit bouwt {naamWeergave} zelf op</h2>
               <div className="cbox-row">
-                <div className="cbox" style={{ background: 'rgba(26,31,54,0.05)' }}>
+                <div className="cbox" style={{ background: '#ffffff', border: `1.5px solid rgba(26,31,54,0.15)` }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: GF.navy, textTransform: 'uppercase' }}>Als {naamWeergave} spaart</div>
                   <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 24 }}>{eurRond(gespaard.eindKapitaal)}</div>
                 </div>
@@ -521,7 +544,12 @@ export default function VrijheidsplanWizard() {
                 <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 32, color: GF.mint }}>{eurRond(verschil)}</div>
                 <div style={{ fontStyle: 'italic', fontSize: 13, color: GF.navy }}>Dat verschil verdient {naamWeergave} niet met werken. Dat verdient {naamWeergave} met tijd.</div>
               </div>
-              <div style={{ background: GF.smoke, borderLeft: `3px solid ${GF.mint}`, borderRadius: 8, padding: '16px 18px', fontSize: 12, lineHeight: 1.7, color: GF.navy, marginTop: 24 }}>
+              <div style={{ background: `linear-gradient(135deg, rgba(107,45,132,0.06), rgba(62,220,177,0.08))`, borderRadius: 12, padding: '20px 22px', textAlign: 'center', margin: '20px 0' }}>
+                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: GF.paars, marginBottom: 6 }}>Volgens de 4%-regel zou dit kunnen zijn</div>
+                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 30, color: GF.mint }}>{eurRond((belegd.eindKapitaal * 0.04) / 12)}</div>
+                <div style={{ fontFamily: 'Lora, serif', fontStyle: 'italic', fontSize: 12, color: GF.navy, opacity: 0.7, marginTop: 4 }}><strong>per maand, vanaf {geslacht === 'meisje' ? 'haar' : 'zijn'} {doel}e, voor de rest van {geslacht === 'meisje' ? 'haar' : 'zijn'} leven</strong>, zonder het vermogen zelf aan te spreken</div>
+              </div>
+              <div style={{ background: '#ffffff', border: `1px solid rgba(107,45,132,0.15)`, borderLeft: `3px solid ${GF.mint}`, borderRadius: 8, padding: '16px 18px', fontSize: 12, lineHeight: 1.7, color: GF.navy, marginTop: 24 }}>
                 <strong style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 13, display: 'block', marginBottom: 6 }}>Waarom rekenen we met 10%?</strong>
                 Dit is geen wensdenken. Het is het historisch gemiddelde van breed gespreide ETF's. Dat betekent niet dat elk jaar 10% oplevert.
                 Sommige jaren staat de teller op een negatief rendement, andere jaren dik in de plus.
@@ -530,7 +558,7 @@ export default function VrijheidsplanWizard() {
                 Maar tijd en geduld zijn de 2 dingen die dit gemiddelde laten werken, en die heeft een tiener in overvloed.
               </div>
               <div style={{ fontSize: 11, opacity: 0.5, marginTop: 16 }}>
-                Berekend met een gemiddeld rendement van {rend}% per jaar bij beleggen, over {belegd.totaalJaren} jaar. Voor sparen is gerekend met {SPAARRENTE}% rente per jaar. Rendementen uit het verleden bieden geen garantie voor de toekomst.
+                Berekend met een gemiddeld rendement van {rend}% per jaar bij beleggen, over {belegd.totaalJaren} jaar. Voor sparen is gerekend met {SPAARRENTE}% rente per jaar. Het maandbedrag is gebaseerd op de 4%-regel, een vuistregel, geen garantie. Rendementen uit het verleden bieden geen garantie voor de toekomst.
               </div>
             </div>
 
@@ -541,7 +569,15 @@ export default function VrijheidsplanWizard() {
                 De meeste rekentools werken met één vast bedrag, van dag één tot het einde. Dit plan rekent met {naamWeergave}'s hele investeerdersleven, van zakgeld tot salaris, in één doorlopende berekening.
               </p>
               {belegd.resultaten.map((r, i) => {
-                const context = ['Dit is zakgeld of klusgeld dat ' + naamWeergave + ' opzij zet in plaats van uitgeeft.', naamWeergave + ' heeft een bijbaantje en legt een groter deel opzij.', 'Eerste serieuze baan, serieuzer bedrag.', 'Carrière gemaakt, inkomen op niveau. ' + naamWeergave + ' legt nu fors meer in, met minder moeite dan het ooit kostte.'][i] || '';
+                const context = [
+                  'Dit is zakgeld of klusgeld dat ' + naamWeergave + ' opzij zet in plaats van uitgeeft.',
+                  naamWeergave + ' heeft een bijbaantje en legt een groter deel opzij.',
+                  'Een vast bijbaantje, met een serieuzer bedrag erbij.',
+                  'Studie of eerste baan, het inkomen bouwt op.',
+                  'Net gestart in loondienst, het inkomen is nog wisselend.',
+                  'Carrière gemaakt, inkomen op niveau. ' + naamWeergave + ' legt nu fors meer in, met minder moeite dan het ooit kostte.',
+                  "Inkomen op z'n hoogtepunt, meer ruimte om in te leggen.",
+                ][i] || '';
                 return (
                   <div key={i} className="fase-block" style={{ borderColor: KLEUREN[i % KLEUREN.length] }}>
                     <strong>{r.van} tot {r.tot} jaar, € {r.bedrag}/mnd</strong>
@@ -564,7 +600,8 @@ export default function VrijheidsplanWizard() {
 
             {/* PDF pagina 4 */}
             <div className="pg">
-              <h2>Dit plan laat zien wat kan. Niet hoe je het veilig doet.</h2>
+              <h2>Dit plan laat zien wat er mogelijk is</h2>
+              <p style={{ fontSize: 13, fontStyle: 'italic', color: GF.navy, opacity: 0.7, marginTop: -12, marginBottom: 22 }}>En het is echt niet zo moeilijk als je nu misschien nog denkt.</p>
               <div className="actie-block">
                 <h4>Wachten tot {naamWeergave} 18 is, is te laat</h4>
                 <p style={{ fontSize: 13, lineHeight: 1.7 }}>Het is jouw verantwoordelijkheid als ouder om {naamWeergave} te leren hoe {geslacht === 'meisje' ? 'zij' : 'hij'} slim omgaat met geld en later met inkomen, en hoe {geslacht === 'meisje' ? 'zij' : 'hij'} vermogen opbouwt. <strong>Dit leren ze niet op school.</strong> Hoe eerder je begint, hoe groter de voorsprong. Wacht je tot {naamWeergave} 18 is, dan zijn de gewoontes al gevormd en ben je precies het momentum kwijt waar dit plan om draait.</p>
