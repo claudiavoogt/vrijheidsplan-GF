@@ -96,6 +96,7 @@ export default function VrijheidsplanWizard() {
 
   const naamWeergave = naam.trim() || 'je kind';
 
+
   // ── Beschermingslaag: berekening loopt via de API, niet in de browser ──
   const fetchResults = useCallback(async (f: Fase[], d: number, r: number) => {
     setLaden(true);
