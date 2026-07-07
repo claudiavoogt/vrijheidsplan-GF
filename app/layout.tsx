@@ -10,8 +10,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 export const metadata: Metadata = {
-  title: "Claudia Voogt",
-  description: "Claudia Voogt",
+  title: "Vrijheidsplan",
+  description: "Vrijheidsplan",
   robots: {
     index: false,
     follow: false,
