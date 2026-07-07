@@ -506,7 +506,7 @@ export default function VrijheidsplanWizard() {
                   </div>
                   <div className="vp-chart-wrap"><canvas ref={chartRef}></canvas></div>
                   <p style={{ fontSize: 11, color: GF.navy, opacity: 0.55, marginTop: 10, textAlign: 'center' }}>
-                    * Op basis van {rend}% gemiddeld jaarlijks rendement. Dit is een schatting, geen garantie. De werkelijke uitkomst kan hoger of lager zijn.
+                    * Op basis van {rend}% gemiddeld jaarlijks rendement. Dit is een schatting, geen garantie. De werkelijke uitkomst kan hoger of lager zijn. Er is geen rekening gehouden met inflatie, maar beleggen blijft op de lange termijn doorgaans flink voordeliger dan sparen.
                   </p>
                 </>
               )}
@@ -663,7 +663,7 @@ export default function VrijheidsplanWizard() {
                 Maar tijd en geduld zijn de 2 dingen die dit gemiddelde laten werken, en die heeft een tiener in overvloed.
               </div>
               <div style={{ fontSize: 11, opacity: 0.5, marginTop: 16 }}>
-                Berekend met een gemiddeld rendement van {rend}% per jaar bij beleggen, over {belegd.totaalJaren} jaar. Voor sparen is gerekend met {spaarrente}% rente per jaar. Het maandbedrag is gebaseerd op de 4%-regel, een vuistregel, geen garantie. Rendementen uit het verleden bieden geen garantie voor de toekomst.
+                Berekend met een gemiddeld rendement van {rend}% per jaar bij beleggen, over {belegd.totaalJaren} jaar. Voor sparen is gerekend met {spaarrente}% rente per jaar. Het maandbedrag is gebaseerd op de 4%-regel, een vuistregel, geen garantie. Rendementen uit het verleden bieden geen garantie voor de toekomst. Er is geen rekening gehouden met inflatie, maar beleggen blijft op de lange termijn doorgaans flink voordeliger dan sparen.
               </div>
             </div>
 
