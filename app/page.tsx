@@ -45,8 +45,6 @@ interface Results {
   verschil: number;
 }
 
-// Moet gelijk blijven aan SPAARRENTE in app/api/bereken/route.ts
-const SPAARRENTE = 1.5;
 
 const DEFAULT_FASES: Fase[] = [
   { van: 10, tot: 13, bedrag: 0 },
@@ -63,6 +61,37 @@ const DEFAULT_FASES: Fase[] = [
 function eur(n: number): string {
   if (Math.abs(n) >= 1_000_000) return '€ ' + (n / 1_000_000).toFixed(2).replace('.', ',') + ' mln';
   return '€ ' + Math.round(n).toLocaleString('nl-NL');
+}
+
+// Context per fase op basis van de leeftijd zelf, niet op basis van positie in de lijst.
+// Zodra iemand fases verwijdert, toevoegt of aanpast, blijft dit kloppen: een fase die
+// begint op 22 krijgt altijd de tekst die bij 18-23 hoort, ongeacht waar hij in de lijst staat.
+const CONTEXT_GRENZEN: [number, string][] = [
+  [13, 'nog geen eigen inkomen'],
+  [14, 'zakgeld of klusgeld'],
+  [16, 'bijbaantje begint'],
+  [18, 'vast bijbaantje, serieuzer bedrag'],
+  [23, 'studie of eerste baan, inkomen bouwt op'],
+  [30, 'net gestart in loondienst, inkomen nog wisselend'],
+  [40, 'carrière gemaakt, inkomen op niveau'],
+  [45, "inkomen op z'n hoogtepunt"],
+];
+function contextVoorFase(van: number): string {
+  for (const [grens, tekst] of CONTEXT_GRENZEN) {
+    if (van < grens) return tekst;
+  }
+  return 'vul zelf in wat hierna nog opzij gaat';
+}
+function contextZinVoorFase(van: number, naam: string): string {
+  if (van < 13) return 'Nog geen eigen inkomen, dit is waar het fundament begint.';
+  if (van < 14) return 'Dit is zakgeld of klusgeld dat ' + naam + ' opzij zet in plaats van uitgeeft.';
+  if (van < 16) return naam + ' heeft een bijbaantje en legt een groter deel opzij.';
+  if (van < 18) return 'Een vast bijbaantje, met een serieuzer bedrag erbij.';
+  if (van < 23) return 'Studie of eerste baan, het inkomen bouwt op.';
+  if (van < 30) return 'Net gestart in loondienst, het inkomen is nog wisselend.';
+  if (van < 40) return 'Carrière gemaakt, inkomen op niveau. ' + naam + ' legt nu fors meer in, met minder moeite dan het ooit kostte.';
+  if (van < 45) return "Inkomen op z'n hoogtepunt, meer ruimte om in te leggen.";
+  return 'Vanaf hier vul je zelf in wat er nog bij komt, tot de doelleeftijd.';
 }
 
 // Afgerond, tegen valse precisie. Een schatting hoort er niet als bankafschrift uit te zien.
@@ -99,6 +128,7 @@ export default function VrijheidsplanWizard() {
   const [geslacht, setGeslacht] = useState<'jongen' | 'meisje'>('jongen');
   const [doel, setDoel] = useState(50);
   const [rend, setRend] = useState(10);
+  const [spaarrente, setSpaarrente] = useState(1.5);
   const [fases, setFases] = useState<FaseMetId[]>(DEFAULT_FASES.map((f, i) => ({ ...f, id: i })));
   const nextId = useRef(DEFAULT_FASES.length);
   const [results, setResults] = useState<Results | null>(null);
@@ -111,13 +141,13 @@ export default function VrijheidsplanWizard() {
 
 
   // ── Beschermingslaag: berekening loopt via de API, niet in de browser ──
-  const fetchResults = useCallback(async (f: Fase[], d: number, r: number) => {
+  const fetchResults = useCallback(async (f: Fase[], d: number, r: number, s: number) => {
     setLaden(true);
     try {
       const res = await fetch('/api/bereken', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fases: f.map(({ van, tot, bedrag }) => ({ van, tot, bedrag })), doel: d, rend: r }),
+        body: JSON.stringify({ fases: f.map(({ van, tot, bedrag }) => ({ van, tot, bedrag })), doel: d, rend: r, spaarrente: s }),
       });
       const data: Results = await res.json();
       setResults(data);
@@ -128,19 +158,19 @@ export default function VrijheidsplanWizard() {
     }
   }, []);
 
-  const fetchDebounced = useCallback((f: Fase[], d: number, r: number) => {
+  const fetchDebounced = useCallback((f: Fase[], d: number, r: number, s: number) => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => fetchResults(f, d, r), 300);
+    debounceTimer.current = setTimeout(() => fetchResults(f, d, r, s), 300);
   }, [fetchResults]);
 
   useEffect(() => {
-    fetchResults(fases, doel, rend);
+    fetchResults(fases, doel, rend, spaarrente);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    fetchDebounced(fases, doel, rend);
-  }, [fases, doel, rend, fetchDebounced]);
+    fetchDebounced(fases, doel, rend, spaarrente);
+  }, [fases, doel, rend, spaarrente, fetchDebounced]);
 
   // De laatste fase is leeg (€ 0) totdat de gebruiker 'm invult, en loopt altijd door tot de doelleeftijd
   useEffect(() => {
@@ -370,7 +400,7 @@ export default function VrijheidsplanWizard() {
               <h1 className="vp-h1" style={{ fontSize: 22 }}>De tijdlijn van {naamWeergave}</h1>
               <p className="vp-sub" style={{ marginBottom: 18 }}>Leeftijden en inleg pas je aan door er gewoon in te klikken. Een fase niet van toepassing? Weg ermee met het kruisje. Mist er een fase? Voeg 'm toe onderaan.</p>
               {fases.map((f, i) => {
-                const context = ['nog geen eigen inkomen', 'zakgeld of klusgeld', 'bijbaantje begint', 'vast bijbaantje, serieuzer bedrag', 'studie of eerste baan, inkomen bouwt op', 'net gestart in loondienst, inkomen nog wisselend', 'carrière gemaakt, inkomen op niveau', "inkomen op z'n hoogtepunt", 'vul zelf in wat hierna nog opzij gaat'][i] || '';
+                const context = contextVoorFase(f.van);
                 return (
                   <div key={f.id}>
                     <div
@@ -435,9 +465,15 @@ export default function VrijheidsplanWizard() {
                 Maar tijd en geduld zijn de 2 dingen die dit gemiddelde laten werken, en die heeft een tiener in overvloed.
               </div>
               <div style={{ marginTop: 22 }}>
-                <span className="vp-label">Gemiddeld jaarlijks rendement</span>
+                <span className="vp-label">Gemiddeld jaarlijks rendement bij beleggen</span>
                 <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 26, color: GF.paars }}>{rend}%</div>
                 <input className="vp-slider" type="range" min={1} max={15} step={0.5} value={rend} onChange={e => setRend(parseFloat(e.target.value))} />
+              </div>
+              <div style={{ marginTop: 26 }}>
+                <span className="vp-label">Rente bij sparen</span>
+                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 26, color: GF.navy }}>{spaarrente}%</div>
+                <input className="vp-slider" type="range" min={0} max={5} step={0.1} value={spaarrente} onChange={e => setSpaarrente(parseFloat(e.target.value))} />
+                <p style={{ fontSize: 12, opacity: 0.6, marginTop: 6 }}>Standaard op 1,5%, de belachelijk lage rente die de meeste spaarrekeningen nu geven. Pas 'm aan als je met een andere rente wil vergelijken.</p>
               </div>
               <div className="vp-nav">
                 <button className="vp-btn-ghost" onClick={vorige}>← Terug</button>
@@ -557,24 +593,9 @@ export default function VrijheidsplanWizard() {
                 Het plan van<br /><span style={{ color: GF.mint, fontSize: 48 }}>{naamWeergave}</span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 0, margin: '30px auto', maxWidth: 460, borderTop: `1px solid rgba(107,45,132,0.15)`, borderBottom: `1px solid rgba(107,45,132,0.15)`, padding: '20px 0' }}>
-                <div style={{ flex: 1, textAlign: 'center', borderRight: `1px solid rgba(107,45,132,0.15)` }}>
-                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 20, color: GF.paars }}>{rend}%</div>
-                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.6 }}>Gem. rendement</div>
-                </div>
-                <div style={{ flex: 1, textAlign: 'center', borderRight: `1px solid rgba(107,45,132,0.15)` }}>
-                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 20, color: GF.paars }}>{belegd.totaalJaren}</div>
-                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.6 }}>Jaar de tijd</div>
-                </div>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 20, color: GF.mint }}>{eurRond(belegd.eindKapitaal)}</div>
-                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.6 }}>Op {geslacht === 'meisje' ? 'haar' : 'zijn'} {doel}e</div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: 'auto', marginBottom: 30, background: '#ffffff', border: `1px solid rgba(107,45,132,0.15)`, borderRadius: 14, padding: '28px 30px', maxWidth: 400, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
-                <div style={{ fontSize: 40, fontFamily: 'Montserrat, sans-serif', color: 'rgba(107,45,132,0.2)', lineHeight: 0.5, marginBottom: 10 }}>"</div>
-                <div style={{ fontSize: 15, fontStyle: 'italic', fontWeight: 700, color: GF.fuchsia, lineHeight: 1.6 }}>
+              <div style={{ marginTop: 'auto', marginBottom: 30, background: '#ffffff', border: `1px solid rgba(107,45,132,0.15)`, borderRadius: 14, padding: '34px 34px', maxWidth: 440, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
+                <div style={{ fontSize: 48, fontFamily: 'Montserrat, sans-serif', color: 'rgba(107,45,132,0.2)', lineHeight: 0.5, marginBottom: 12 }}>"</div>
+                <div style={{ fontSize: 20, fontStyle: 'italic', fontWeight: 700, color: GF.fuchsia, lineHeight: 1.6 }}>
                   Beleggen is geen belofte. Het is <span style={{ color: GF.mint }}>tijd</span>, <span style={{ color: GF.mint }}>geduld</span> en een <span style={{ color: GF.paars }}>voorsprong</span> die maar één keer in het leven van {naamWeergave} zo groot is als nu.
                 </div>
               </div>
@@ -591,17 +612,7 @@ export default function VrijheidsplanWizard() {
                 De meeste rekentools werken met één vast bedrag, van dag één tot het einde. Dit plan rekent met {naamWeergave}'s hele investeerdersleven, van zakgeld tot salaris, in één doorlopende berekening.
               </p>
               {belegd.resultaten.map((r, i) => {
-                const context = [
-                  'Nog geen eigen inkomen, dit is waar het fundament begint.',
-                  'Dit is zakgeld of klusgeld dat ' + naamWeergave + ' opzij zet in plaats van uitgeeft.',
-                  naamWeergave + ' heeft een bijbaantje en legt een groter deel opzij.',
-                  'Een vast bijbaantje, met een serieuzer bedrag erbij.',
-                  'Studie of eerste baan, het inkomen bouwt op.',
-                  'Net gestart in loondienst, het inkomen is nog wisselend.',
-                  'Carrière gemaakt, inkomen op niveau. ' + naamWeergave + ' legt nu fors meer in, met minder moeite dan het ooit kostte.',
-                  "Inkomen op z'n hoogtepunt, meer ruimte om in te leggen.",
-                  'Vanaf hier vul je zelf in wat er nog bij komt, tot de doelleeftijd.',
-                ][i] || '';
+                const context = contextZinVoorFase(r.van, naamWeergave);
                 return (
                   <div key={i} className="fase-block" style={{ borderColor: KLEUREN[i % KLEUREN.length] }}>
                     <strong>{r.van} tot {r.tot} jaar, € {r.bedrag}/mnd</strong>
@@ -646,7 +657,7 @@ export default function VrijheidsplanWizard() {
                 Maar tijd en geduld zijn de 2 dingen die dit gemiddelde laten werken, en die heeft een tiener in overvloed.
               </div>
               <div style={{ fontSize: 11, opacity: 0.5, marginTop: 16 }}>
-                Berekend met een gemiddeld rendement van {rend}% per jaar bij beleggen, over {belegd.totaalJaren} jaar. Voor sparen is gerekend met {SPAARRENTE}% rente per jaar. Het maandbedrag is gebaseerd op de 4%-regel, een vuistregel, geen garantie. Rendementen uit het verleden bieden geen garantie voor de toekomst.
+                Berekend met een gemiddeld rendement van {rend}% per jaar bij beleggen, over {belegd.totaalJaren} jaar. Voor sparen is gerekend met {spaarrente}% rente per jaar. Het maandbedrag is gebaseerd op de 4%-regel, een vuistregel, geen garantie. Rendementen uit het verleden bieden geen garantie voor de toekomst.
               </div>
             </div>
 

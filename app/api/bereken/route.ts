@@ -23,9 +23,6 @@ interface Scenario {
   resultaten: FaseResultaat[];
 }
 
-// Moet gelijk blijven aan SPAARRENTE in page.tsx
-const SPAARRENTE = 1.5;
-
 function berekenScenario(fases: Fase[], doel: number, rendPct: number): Scenario {
   // Sorteren op leeftijd, ongeacht de volgorde waarin de fases zijn ingevoerd of getypt.
   // Zonder dit compoundt de rente in de volgorde van de lijst in plaats van in de volgorde
@@ -70,13 +67,14 @@ export async function POST(request: NextRequest) {
     const fases: Fase[] = body.fases;
     const doel: number = body.doel;
     const rend: number = body.rend;
+    const spaarrente: number = typeof body.spaarrente === 'number' ? body.spaarrente : 1.5;
 
     if (!Array.isArray(fases) || fases.length === 0 || typeof doel !== 'number' || typeof rend !== 'number') {
       return NextResponse.json({ error: 'bad request' }, { status: 400 });
     }
 
     const belegd = berekenScenario(fases, doel, rend);
-    const gespaard = berekenScenario(fases, doel, SPAARRENTE);
+    const gespaard = berekenScenario(fases, doel, spaarrente);
     const verschil = belegd.eindKapitaal - gespaard.eindKapitaal;
 
     return NextResponse.json({ belegd, gespaard, verschil });
