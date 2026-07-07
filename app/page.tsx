@@ -42,6 +42,7 @@ interface Results {
 const SPAARRENTE = 1.5;
 
 const DEFAULT_FASES: Fase[] = [
+  { van: 10, tot: 13, bedrag: 0 },
   { van: 13, tot: 14, bedrag: 30 },
   { van: 14, tot: 16, bedrag: 100 },
   { van: 16, tot: 18, bedrag: 200 },
@@ -49,6 +50,7 @@ const DEFAULT_FASES: Fase[] = [
   { van: 23, tot: 30, bedrag: 250 },
   { van: 30, tot: 40, bedrag: 300 },
   { van: 40, tot: 45, bedrag: 350 },
+  { van: 45, tot: 50, bedrag: 0 },
 ];
 
 function eur(n: number): string {
@@ -131,6 +133,21 @@ export default function VrijheidsplanWizard() {
   useEffect(() => {
     fetchDebounced(fases, doel, rend);
   }, [fases, doel, rend, fetchDebounced]);
+
+  // De laatste fase is leeg (€ 0) totdat de gebruiker 'm invult, en loopt altijd door tot de doelleeftijd
+  useEffect(() => {
+    setFases(prev => {
+      if (prev.length === 0) return prev;
+      const idx = prev.length - 1;
+      const laatste = prev[idx];
+      if (laatste.bedrag === 0 && laatste.tot !== doel && doel > laatste.van) {
+        const kopie = [...prev];
+        kopie[idx] = { ...laatste, tot: doel };
+        return kopie;
+      }
+      return prev;
+    });
+  }, [doel]);
 
   function updateFase(i: number, key: keyof Fase, val: number) {
     setFases(prev => prev.map((f, idx) => idx === i ? { ...f, [key]: val } : f));
@@ -341,7 +358,7 @@ export default function VrijheidsplanWizard() {
               <h1 className="vp-h1" style={{ fontSize: 22 }}>De tijdlijn van {naamWeergave}</h1>
               <p className="vp-sub" style={{ marginBottom: 18 }}>Leeftijden en inleg pas je aan door er gewoon in te klikken. Een fase niet van toepassing? Weg ermee met het kruisje. Mist er een fase? Voeg 'm toe onderaan.</p>
               {fases.map((f, i) => {
-                const context = ['zakgeld of klusgeld', 'bijbaantje begint', 'vast bijbaantje, serieuzer bedrag', 'studie of eerste baan, inkomen bouwt op', 'net gestart in loondienst, inkomen nog wisselend', 'carrière gemaakt, inkomen op niveau', "inkomen op z'n hoogtepunt"][i] || '';
+                const context = ['nog geen eigen inkomen', 'zakgeld of klusgeld', 'bijbaantje begint', 'vast bijbaantje, serieuzer bedrag', 'studie of eerste baan, inkomen bouwt op', 'net gestart in loondienst, inkomen nog wisselend', 'carrière gemaakt, inkomen op niveau', "inkomen op z'n hoogtepunt", 'vul zelf in wat hierna nog opzij gaat'][i] || '';
                 return (
                   <div key={i}>
                     <div className="vp-fase-row">
@@ -535,6 +552,7 @@ export default function VrijheidsplanWizard() {
               </p>
               {belegd.resultaten.map((r, i) => {
                 const context = [
+                  'Nog geen eigen inkomen, dit is waar het fundament begint.',
                   'Dit is zakgeld of klusgeld dat ' + naamWeergave + ' opzij zet in plaats van uitgeeft.',
                   naamWeergave + ' heeft een bijbaantje en legt een groter deel opzij.',
                   'Een vast bijbaantje, met een serieuzer bedrag erbij.',
@@ -542,6 +560,7 @@ export default function VrijheidsplanWizard() {
                   'Net gestart in loondienst, het inkomen is nog wisselend.',
                   'Carrière gemaakt, inkomen op niveau. ' + naamWeergave + ' legt nu fors meer in, met minder moeite dan het ooit kostte.',
                   "Inkomen op z'n hoogtepunt, meer ruimte om in te leggen.",
+                  'Vanaf hier vul je zelf in wat er nog bij komt, tot de doelleeftijd.',
                 ][i] || '';
                 return (
                   <div key={i} className="fase-block" style={{ borderColor: KLEUREN[i % KLEUREN.length] }}>
@@ -551,13 +570,6 @@ export default function VrijheidsplanWizard() {
                   </div>
                 );
               })}
-              {belegd.resultaten.length > 0 && belegd.resultaten[belegd.resultaten.length - 1].tot < doel && (
-                <div className="fase-block" style={{ borderColor: GF.mint }}>
-                  <strong>{belegd.resultaten[belegd.resultaten.length - 1].tot} tot {doel} jaar, geen inleg meer</strong>
-                  <div style={{ fontSize: 13, margin: '4px 0' }}>Vanaf hier doet {naamWeergave} niets meer. Het geld werkt door, vanzelf.</div>
-                  <div style={{ fontSize: 13 }}>Groeit gemiddeld naar: {eurRond(belegd.eindKapitaal)}.</div>
-                </div>
-              )}
               <p style={{ fontSize: 10, color: GF.navy, opacity: 0.5, marginTop: 20 }}>
                 * Op basis van {rend}% gemiddeld jaarlijks rendement. Dit zijn schattingen, geen garanties. De werkelijke uitkomst kan hoger of lager zijn.
               </p>
