@@ -23,15 +23,22 @@ interface Scenario {
   resultaten: FaseResultaat[];
 }
 
-const SPAARRENTE = 1.5; // vast uitgangspunt voor de spaarrekening-vergelijking
+// Moet gelijk blijven aan SPAARRENTE in page.tsx
+const SPAARRENTE = 1.5;
 
 function berekenScenario(fases: Fase[], doel: number, rendPct: number): Scenario {
+  // Sorteren op leeftijd, ongeacht de volgorde waarin de fases zijn ingevoerd of getypt.
+  // Zonder dit compoundt de rente in de volgorde van de lijst in plaats van in de volgorde
+  // van de tijd, en dat geeft absurd hoge (of lage) eindbedragen zodra iemand een fase
+  // toevoegt of aanpast die niet meer chronologisch aansluit op de rest.
+  const gesorteerd = [...fases].sort((a, b) => a.van - b.van);
+
   const maandRente = Math.pow(1 + rendPct / 100, 1 / 12) - 1;
   let kap = 0;
   let totIngelegd = 0;
   const resultaten: FaseResultaat[] = [];
 
-  fases.forEach((f, i) => {
+  gesorteerd.forEach((f, i) => {
     const maanden = Math.max(0, Math.round((f.tot - f.van) * 12));
     const kapVoor = kap;
     let ingelegd = 0;
@@ -43,7 +50,7 @@ function berekenScenario(fases: Fase[], doel: number, rendPct: number): Scenario
     resultaten.push({ van: f.van, tot: f.tot, bedrag: f.bedrag, ingelegd, kapVoor, kapNa: kap, index: i });
   });
 
-  const laatste = fases[fases.length - 1];
+  const laatste = gesorteerd[gesorteerd.length - 1];
   if (laatste && laatste.tot < doel) {
     const maanden = Math.round((doel - laatste.tot) * 12);
     for (let m = 0; m < maanden; m++) kap = kap * (1 + maandRente);
@@ -53,7 +60,7 @@ function berekenScenario(fases: Fase[], doel: number, rendPct: number): Scenario
     eindKapitaal: kap,
     totaalIngelegd: totIngelegd,
     resultaten,
-    totaalJaren: fases[0] ? doel - fases[0].van : 0,
+    totaalJaren: gesorteerd[0] ? doel - gesorteerd[0].van : 0,
   };
 }
 

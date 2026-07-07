@@ -152,6 +152,9 @@ export default function VrijheidsplanWizard() {
   function updateFase(i: number, key: keyof Fase, val: number) {
     setFases(prev => prev.map((f, idx) => idx === i ? { ...f, [key]: val } : f));
   }
+  function sorteerFases() {
+    setFases(prev => [...prev].sort((a, b) => a.van - b.van));
+  }
   function addFase() {
     const last = fases[fases.length - 1];
     setFases(prev => [...prev, { van: last ? last.tot : 11, tot: last ? last.tot + 10 : 21, bedrag: last ? Math.round(last.bedrag * 1.5) : 50 }]);
@@ -363,9 +366,9 @@ export default function VrijheidsplanWizard() {
                   <div key={i}>
                     <div className="vp-fase-row">
                       <div className="vp-dot-kleur" style={{ background: KLEUREN[i % KLEUREN.length] }} />
-                      <input className="vp-fi" type="number" value={f.van} onChange={e => updateFase(i, 'van', parseFloat(e.target.value) || 0)} />
+                      <input className="vp-fi" type="number" value={f.van} onChange={e => updateFase(i, 'van', parseFloat(e.target.value) || 0)} onBlur={sorteerFases} />
                       <span>→</span>
-                      <input className="vp-fi" type="number" value={f.tot} onChange={e => updateFase(i, 'tot', parseFloat(e.target.value) || 0)} />
+                      <input className="vp-fi" type="number" value={f.tot} onChange={e => updateFase(i, 'tot', parseFloat(e.target.value) || 0)} onBlur={sorteerFases} />
                       <span>€</span>
                       <input className="vp-fi bedrag" type="number" value={f.bedrag} onChange={e => updateFase(i, 'bedrag', parseFloat(e.target.value) || 0)} />
                       <span style={{ fontSize: 12, opacity: 0.6 }}>/mnd</span>
