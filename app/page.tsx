@@ -594,9 +594,15 @@ export default function VrijheidsplanWizard() {
               </div>
 
               <div style={{ marginTop: 'auto', marginBottom: 30, background: '#ffffff', border: `1px solid rgba(107,45,132,0.15)`, borderRadius: 14, padding: '34px 34px', maxWidth: 440, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
-                <div style={{ fontSize: 48, fontFamily: 'Montserrat, sans-serif', color: 'rgba(107,45,132,0.2)', lineHeight: 0.5, marginBottom: 12 }}>"</div>
-                <div style={{ fontSize: 20, fontStyle: 'italic', fontWeight: 700, color: GF.fuchsia, lineHeight: 1.6 }}>
-                  Beleggen is geen belofte. Het is <span style={{ color: GF.mint }}>tijd</span>, <span style={{ color: GF.mint }}>geduld</span> en een <span style={{ color: GF.paars }}>voorsprong</span> die maar één keer in het leven van {naamWeergave} zo groot is als nu.
+                <div style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: 34, color: GF.paars, lineHeight: 1.1, marginBottom: 8 }}>
+                  Tijd is
+                </div>
+                <div style={{ fontSize: 18, fontStyle: 'italic', fontWeight: 700, color: GF.fuchsia, lineHeight: 1.6 }}>
+                  de enige <span style={{ color: GF.mint }}>superkracht</span> die niemand kan kopen. {naamWeergave} heeft er meer van dan wie dan ook aan deze tafel.
+                </div>
+                <div style={{ height: 18 }} />
+                <div style={{ fontSize: 15, fontStyle: 'italic', fontWeight: 700, color: GF.navy, lineHeight: 1.6 }}>
+                  Dit plan belooft geen rijkdom. Het belooft dat {naamWeergave} nooit meer hoeft in te halen wat wij te laat begonnen.
                 </div>
               </div>
 
