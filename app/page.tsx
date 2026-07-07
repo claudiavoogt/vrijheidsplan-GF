@@ -20,6 +20,13 @@ interface Fase {
   bedrag: number;
 }
 
+// Voor de editor: elke rij heeft een eigen, stabiel id. Zonder dit raakt React in de war
+// over welke rij welke waarden heeft zodra de lijst opnieuw wordt gesorteerd, en dat gaf
+// precies het verspringen en het optellen van verkeerde bedragen.
+interface FaseMetId extends Fase {
+  id: number;
+}
+
 interface FaseResultaat {
   van: number; tot: number; bedrag: number;
   ingelegd: number; kapVoor: number; kapNa: number; index: number;
@@ -92,7 +99,8 @@ export default function VrijheidsplanWizard() {
   const [geslacht, setGeslacht] = useState<'jongen' | 'meisje'>('jongen');
   const [doel, setDoel] = useState(50);
   const [rend, setRend] = useState(10);
-  const [fases, setFases] = useState<Fase[]>(DEFAULT_FASES.map(f => ({ ...f })));
+  const [fases, setFases] = useState<FaseMetId[]>(DEFAULT_FASES.map((f, i) => ({ ...f, id: i })));
+  const nextId = useRef(DEFAULT_FASES.length);
   const [results, setResults] = useState<Results | null>(null);
   const [laden, setLaden] = useState(false);
   const chartRef = useRef<HTMLCanvasElement>(null);
@@ -109,7 +117,7 @@ export default function VrijheidsplanWizard() {
       const res = await fetch('/api/bereken', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fases: f, doel: d, rend: r }),
+        body: JSON.stringify({ fases: f.map(({ van, tot, bedrag }) => ({ van, tot, bedrag })), doel: d, rend: r }),
       });
       const data: Results = await res.json();
       setResults(data);
@@ -157,7 +165,8 @@ export default function VrijheidsplanWizard() {
   }
   function addFase() {
     const last = fases[fases.length - 1];
-    setFases(prev => [...prev, { van: last ? last.tot : 11, tot: last ? last.tot + 10 : 21, bedrag: last ? Math.round(last.bedrag * 1.5) : 50 }]);
+    const id = nextId.current++;
+    setFases(prev => [...prev, { id, van: last ? last.tot : 11, tot: last ? last.tot + 10 : 21, bedrag: last ? Math.round(last.bedrag * 1.5) : 50 }]);
   }
   function removeFase(i: number) {
     setFases(prev => prev.filter((_, idx) => idx !== i));
@@ -363,12 +372,19 @@ export default function VrijheidsplanWizard() {
               {fases.map((f, i) => {
                 const context = ['nog geen eigen inkomen', 'zakgeld of klusgeld', 'bijbaantje begint', 'vast bijbaantje, serieuzer bedrag', 'studie of eerste baan, inkomen bouwt op', 'net gestart in loondienst, inkomen nog wisselend', 'carrière gemaakt, inkomen op niveau', "inkomen op z'n hoogtepunt", 'vul zelf in wat hierna nog opzij gaat'][i] || '';
                 return (
-                  <div key={i}>
-                    <div className="vp-fase-row">
+                  <div key={f.id}>
+                    <div
+                      className="vp-fase-row"
+                      onBlur={e => {
+                        // Pas sorteren als de focus de hele rij verlaat, niet bij elk los veld.
+                        // Anders springt de rij weg terwijl je nog aan het invullen bent.
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) sorteerFases();
+                      }}
+                    >
                       <div className="vp-dot-kleur" style={{ background: KLEUREN[i % KLEUREN.length] }} />
-                      <input className="vp-fi" type="number" value={f.van} onChange={e => updateFase(i, 'van', parseFloat(e.target.value) || 0)} onBlur={sorteerFases} />
+                      <input className="vp-fi" type="number" value={f.van} onChange={e => updateFase(i, 'van', parseFloat(e.target.value) || 0)} />
                       <span>→</span>
-                      <input className="vp-fi" type="number" value={f.tot} onChange={e => updateFase(i, 'tot', parseFloat(e.target.value) || 0)} onBlur={sorteerFases} />
+                      <input className="vp-fi" type="number" value={f.tot} onChange={e => updateFase(i, 'tot', parseFloat(e.target.value) || 0)} />
                       <span>€</span>
                       <input className="vp-fi bedrag" type="number" value={f.bedrag} onChange={e => updateFase(i, 'bedrag', parseFloat(e.target.value) || 0)} />
                       <span style={{ fontSize: 12, opacity: 0.6 }}>/mnd</span>
@@ -378,6 +394,27 @@ export default function VrijheidsplanWizard() {
                   </div>
                 );
               })}
+              {(() => {
+                const gesorteerd = [...fases].sort((a, b) => a.van - b.van);
+                const meldingen: string[] = [];
+                for (let idx = 0; idx < gesorteerd.length - 1; idx++) {
+                  const huidige = gesorteerd[idx];
+                  const volgende = gesorteerd[idx + 1];
+                  if (huidige.tot < volgende.van) {
+                    meldingen.push(`Gat tussen ${huidige.tot} en ${volgende.van} jaar. Deze jaren tellen nu mee als € 0 inleg.`);
+                  } else if (huidige.tot > volgende.van) {
+                    meldingen.push(`Overlap tussen ${huidige.van}-${huidige.tot} jaar en ${volgende.van}-${volgende.tot} jaar. Check die leeftijden.`);
+                  }
+                }
+                if (meldingen.length === 0) return null;
+                return (
+                  <div style={{ marginTop: 4, marginBottom: 14 }}>
+                    {meldingen.map((m, idx) => (
+                      <div key={idx} style={{ color: '#D0021B', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>⚠ {m}</div>
+                    ))}
+                  </div>
+                );
+              })()}
               <button className="vp-add" onClick={addFase}>+ Voeg fase toe</button>
               <div className="vp-nav">
                 <button className="vp-btn-ghost" onClick={vorige}>← Terug</button>
