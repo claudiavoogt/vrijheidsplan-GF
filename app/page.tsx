@@ -343,7 +343,7 @@ export default function VrijheidsplanWizard() {
             <div className="vp-card" style={{ textAlign: 'center' }}>
               <div className="vp-rocket">🚀</div>
               <span className="vp-badge">Het Vrijheidsplan</span>
-              <h1 className="vp-h1">Wat als je kind op 40-jarige leeftijd nooit meer over geld hoeft te piekeren?</h1>
+              <h1 className="vp-h1">Wat als je kind op latere leeftijd nooit meer over geld hoeft te piekeren?</h1>
               <p className="vp-sub">Vul in 3 minuten in wat jouw kind opzij zet en zie precies wat dat wordt. Beleggen is geen belofte, het is een keuze die de tijd voor je laat werken.</p>
               <button className="vp-btn" onClick={volgende}>Start het Vrijheidsplan van mijn kind</button>
             </div>
