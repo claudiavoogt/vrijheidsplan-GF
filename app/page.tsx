@@ -137,6 +137,11 @@ export default function VrijheidsplanWizard() {
   const chartInstance = useRef<any>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Bijhouden wat iemand op dit moment aan het intypen is in een van de fase-vakjes
+  // (van/tot/bedrag), los van de "echte" waarde in fases. Zo kan een vak leeg zijn
+  // terwijl je typt, zonder dat er steeds een "0" tussen komt staan.
+  const [editingRaw, setEditingRaw] = useState<Record<string, string>>({});
+
   const naamWeergave = naam.trim() || 'je kind';
 
 
@@ -200,6 +205,44 @@ export default function VrijheidsplanWizard() {
   }
   function removeFase(i: number) {
     setFases(prev => prev.filter((_, idx) => idx !== i));
+  }
+
+  // Cijferveld voor van/tot/bedrag dat prettig overtypen mogelijk maakt:
+  // - klikken/tabben erin selecteert meteen de hele waarde, zodat typen 'm gewoon vervangt
+  // - verwijderen laat een écht leeg vak achter, geen "0" die in de weg staat
+  // - nieuwe cijfers worden gewoon van links naar rechts getypt, zoals in elk ander invoerveld
+  function renderFaseInput(f: FaseMetId, i: number, key: 'van' | 'tot' | 'bedrag', extraClass = '') {
+    const k = `${f.id}_${key}`;
+    const raw = editingRaw[k];
+    const waarde = raw !== undefined ? raw : String(f[key]);
+    return (
+      <input
+        className={`vp-fi${extraClass ? ' ' + extraClass : ''}`}
+        type="number"
+        value={waarde}
+        onFocus={e => {
+          setEditingRaw(prev => ({ ...prev, [k]: String(f[key]) }));
+          e.target.select();
+        }}
+        onChange={e => {
+          const v = e.target.value;
+          setEditingRaw(prev => ({ ...prev, [k]: v }));
+          const parsed = parseFloat(v);
+          if (!isNaN(parsed)) updateFase(i, key, parsed);
+        }}
+        onBlur={() => {
+          const huidigeRaw = editingRaw[k];
+          setEditingRaw(prev => {
+            const kopie = { ...prev };
+            delete kopie[k];
+            return kopie;
+          });
+          if (huidigeRaw !== undefined && (huidigeRaw === '' || isNaN(parseFloat(huidigeRaw)))) {
+            updateFase(i, key, 0);
+          }
+        }}
+      />
+    );
   }
 
   const volgende = () => setStap(s => Math.min(STAPPEN.length - 1, s + 1));
@@ -299,7 +342,7 @@ export default function VrijheidsplanWizard() {
         .vp-dot-kleur { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
         .vp-fi { width: 56px; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 14px; padding: 8px; border: 1.5px solid rgba(107,45,132,0.25); border-radius: 8px; text-align: center; }
         .vp-fi.bedrag { width: 72px; }
-        .vp-fase-context { font-family: 'Lora', serif; font-style: italic; font-size: 12px; opacity: 0.55; margin-left: 20px; margin-bottom: 14px; }
+        .vp-fase-context { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 12px; opacity: 0.65; margin-left: 20px; margin-bottom: 14px; }
         .vp-remove { border: none; background: none; color: ${GF.fuchsia}; font-size: 18px; cursor: pointer; opacity: 0.5; }
         .vp-add { border: 1.5px dashed rgba(107,45,132,0.3); background: none; color: ${GF.paars}; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 13px; border-radius: 10px; padding: 10px; width: 100%; cursor: pointer; margin-top: 6px; }
         .vp-explain { background: ${GF.smoke}; border-left: 3px solid ${GF.mint}; border-radius: 10px; padding: 18px 20px; font-size: 14px; line-height: 1.8; }
@@ -412,11 +455,11 @@ export default function VrijheidsplanWizard() {
                       }}
                     >
                       <div className="vp-dot-kleur" style={{ background: KLEUREN[i % KLEUREN.length] }} />
-                      <input className="vp-fi" type="number" value={f.van} onChange={e => updateFase(i, 'van', parseFloat(e.target.value) || 0)} />
+                      {renderFaseInput(f, i, 'van')}
                       <span>→</span>
-                      <input className="vp-fi" type="number" value={f.tot} onChange={e => updateFase(i, 'tot', parseFloat(e.target.value) || 0)} />
+                      {renderFaseInput(f, i, 'tot')}
                       <span>€</span>
-                      <input className="vp-fi bedrag" type="number" value={f.bedrag} onChange={e => updateFase(i, 'bedrag', parseFloat(e.target.value) || 0)} />
+                      {renderFaseInput(f, i, 'bedrag', 'bedrag')}
                       <span style={{ fontSize: 12, opacity: 0.6 }}>/mnd</span>
                       {fases.length > 1 && <button className="vp-remove" onClick={() => removeFase(i)}>×</button>}
                     </div>
